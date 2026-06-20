@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Archivio Consuntivi — Gama Service</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --arancio: #E0701B;
+    --arancio-scuro: #b8580f;
+    --navy: #1F3864;
+    --navy-chiaro: #2c4d8a;
+    --sfondo: #f4f1ec;
+    --carta: #ffffff;
+    --grigio-chiaro: #f2f0ec;
+    --grigio-muto: #7d7a74;
+    --linea: #e3ded6;
+    --scuro: #232020;
+    --ok: #2e7d52;
+    --ombra: 0 1px 2px rgba(31,56,100,.06), 0 8px 24px rgba(31,56,100,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: 'Manrope', system-ui, sans-serif;
+    background: var(--sfondo);
+    color: var(--scuro);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ---------- Intestazione ---------- */
+  .testata {
+    background: var(--navy);
+    color: #fff;
+    padding: 22px 0 20px;
+    border-bottom: 4px solid var(--arancio);
+  }
+  .wrap { width: min(1040px, 92vw); margin: 0 auto; }
+  .marchio { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .marchio .nome { font-size: clamp(22px, 4.5vw, 30px); font-weight: 800; letter-spacing: -.02em; }
+  .marchio .nome b { color: var(--arancio); }
+  .marchio .srl { font-size: 13px; font-weight: 600; color: #9fb0d0; letter-spacing: .14em; text-transform: uppercase; }
+  .testata .occhiello {
+    margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: #9fb0d0; letter-spacing: .04em;
+  }
+
+  /* ---------- Barra sezioni (cartelle) ---------- */
+  .sezioni {
+    position: sticky; top: 0; z-index: 5;
+    background: rgba(244,241,236,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--linea);
+  }
+  .sezioni-inner { display: flex; align-items: center; gap: 8px; padding: 12px 0; flex-wrap: wrap; }
+  .tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--linea); background: var(--carta);
+    color: var(--navy); font-family: inherit; font-size: 14px; font-weight: 700;
+    padding: 9px 15px; border-radius: 10px 10px 4px 4px; cursor: pointer;
+    transition: transform .12s ease, border-color .12s ease, background .12s ease;
+  }
+  .tab .ico { width: 16px; height: 16px; display: block; opacity: .7; }
+  .tab .conta {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    background: var(--grigio-chiaro); color: var(--grigio-muto);
+    padding: 1px 7px; border-radius: 20px; min-width: 22px; text-align: center;
+  }
+  .tab:hover { border-color: #cdbfa9; transform: translateY(-1px); }
+  .tab[aria-selected="true"] {
+    background: var(--arancio); border-color: var(--arancio); color: #fff;
+  }
+  .tab[aria-selected="true"] .ico { opacity: 1; filter: brightness(0) invert(1); }
+  .tab[aria-selected="true"] .conta { background: rgba(255,255,255,.25); color: #fff; }
+  .btn-ric {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--linea); background: var(--carta); color: var(--navy);
+    font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 13px;
+    border-radius: 10px; cursor: pointer; transition: border-color .12s ease;
+  }
+  .btn-ric:hover { border-color: #cdbfa9; }
+  .btn-ric svg { width: 15px; height: 15px; }
+
+  /* ---------- Contenuto ---------- */
+  main { padding: 26px 0 60px; }
+  .intestazione-sezione { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .intestazione-sezione h1 { font-size: clamp(20px, 4vw, 26px); font-weight: 800; color: var(--navy); letter-spacing: -.02em; }
+  .pallino { width: 10px; height: 10px; border-radius: 50%; background: var(--arancio); flex: none; }
+  .sottotitolo { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--grigio-muto); margin-bottom: 18px; }
+
+  .cerca { position: relative; margin-bottom: 16px; max-width: 420px; }
+  .cerca input {
+    width: 100%; font-family: inherit; font-size: 14px; color: var(--scuro);
+    padding: 11px 13px 11px 38px; border: 1px solid var(--linea); border-radius: 10px;
+    background: var(--carta); transition: border-color .12s ease, box-shadow .12s ease;
+  }
+  .cerca input:focus { outline: none; border-color: var(--arancio); box-shadow: 0 0 0 3px rgba(224,112,27,.14); }
+  .cerca svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--grigio-muto); }
+
+  /* ---------- Lista file ---------- */
+  .lista { display: flex; flex-direction: column; gap: 9px; }
+  .riga {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--carta); border: 1px solid var(--linea); border-radius: 12px;
+    padding: 13px 15px; box-shadow: var(--ombra);
+    transition: transform .12s ease, border-color .12s ease;
+    animation: entra .28s ease both;
+  }
+  .riga:hover { transform: translateY(-1px); border-color: #cdbfa9; }
+  .icona-doc { flex: none; width: 40px; height: 40px; border-radius: 9px; background: var(--grigio-chiaro); display: grid; place-items: center; }
+  .icona-doc svg { width: 20px; height: 20px; color: var(--navy); }
+  .info { flex: 1; min-width: 0; }
+  .nome-file {
+    font-weight: 700; font-size: 14.5px; color: var(--scuro);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .meta-file { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--grigio-muto); margin-top: 2px; }
+  .scarica {
+    flex: none; display: inline-flex; align-items: center; gap: 7px;
+    background: var(--arancio); color: #fff; text-decoration: none;
+    font-family: inherit; font-size: 13.5px; font-weight: 700;
+    padding: 9px 15px; border-radius: 9px; transition: background .12s ease, transform .12s ease;
+  }
+  .scarica:hover { background: var(--arancio-scuro); transform: translateY(-1px); }
+  .scarica:focus-visible { outline: 3px solid rgba(224,112,27,.4); outline-offset: 2px; }
+  .scarica svg { width: 15px; height: 15px; }
+
+  /* ---------- Stati ---------- */
+  .stato { text-align: center; padding: 60px 20px; color: var(--grigio-muto); }
+  .stato .grande { font-size: 40px; margin-bottom: 12px; opacity: .55; }
+  .stato p { font-size: 15px; }
+  .stato button {
+    margin-top: 16px; background: var(--navy); color: #fff; border: none;
+    font-family: inherit; font-weight: 700; font-size: 13.5px; padding: 9px 18px;
+    border-radius: 9px; cursor: pointer;
+  }
+  .stato button:hover { background: var(--navy-chiaro); }
+  .spinner {
+    width: 34px; height: 34px; margin: 0 auto 14px; border: 3px solid var(--linea);
+    border-top-color: var(--arancio); border-radius: 50%; animation: gira .8s linear infinite;
+  }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  @keyframes entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .pie { text-align: center; padding: 24px 0 40px; color: var(--grigio-muto); font-size: 12px; }
+  .pie b { color: var(--navy); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+  @media (max-width: 560px) {
+    .scarica span { display: none; }
+    .scarica { padding: 10px 12px; }
+    .riga { gap: 11px; padding: 11px 12px; }
+  }
+</style>
+</head>
+<body>
+  <header class="testata">
+    <div class="wrap">
+      <div class="marchio">
+        <span class="nome"><b>GAMA</b> SERVICE</span>
+        <span class="srl">S.R.L.</span>
+      </div>
+      <div class="occhiello">ARCHIVIO CONSUNTIVI · documenti su Google Drive</div>
+    </div>
+  </header>
+
+  <nav class="sezioni">
+    <div class="wrap sezioni-inner" id="tabs" role="tablist" aria-label="Sezioni"></div>
+  </nav>
+
+  <main>
+    <div class="wrap">
+      <div class="intestazione-sezione">
+        <span class="pallino"></span>
+        <h1 id="titoloSezione">CBRE</h1>
+      </div>
+      <div class="sottotitolo" id="sottotitolo">Carico i documenti…</div>
+
+      <div class="cerca">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="filtro" placeholder="Cerca per nome…" autocomplete="off" />
+      </div>
+
+      <div id="contenuto"></div>
+    </div>
+  </main>
+
+  <div class="pie">Gama Service S.R.L. · <b>Archivio Consuntivi</b></div>
+
+<script>
+  // ====== CONFIGURAZIONE ======
+  const FUNZIONE_URL = "https://europe-west1-gama-service.cloudfunctions.net/elencaConsuntiviDrive";
+  const TOKEN = "42c93fde15187744a4bd92b7d5074fb76709ed40e9871ea9";
+  const SEZIONI = [
+    { key: "CBRE",       label: "CBRE" },
+    { key: "CREVAL",     label: "CREVAL" },
+    { key: "DUSSMANN",   label: "DUSSMANN" },
+    { key: "PREVENTIVI", label: "Preventivi" },
+  ];
+
+  const ICONA_CARTELLA = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#1F3864" stroke-width="2" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  const ICONA_DOC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>';
+  const ICONA_SCARICA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>';
+
+  let sezioneAttiva = SEZIONI[0].key;
+  const cache = {};   // categoria -> array di file
+  const conteggi = {}; // categoria -> numero (per i badge)
+
+  const el = (id) => document.getElementById(id);
+
+  // ---- costruisco i tab ----
+  function disegnaTab() {
+    const tabs = el("tabs");
+    tabs.innerHTML = SEZIONI.map(s => `
+      <button class="tab" role="tab" data-key="${s.key}"
+              aria-selected="${s.key === sezioneAttiva}">
+        ${ICONA_CARTELLA}<span>${s.label}</span>
+        <span class="conta" id="conta-${s.key}">·</span>
+      </button>`).join("") +
+      `<button class="btn-ric" id="btnAggiorna" title="Aggiorna">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+        Aggiorna
+      </button>`;
+    tabs.querySelectorAll(".tab").forEach(b => {
+      b.addEventListener("click", () => cambiaSezione(b.dataset.key));
+    });
+    el("btnAggiorna").addEventListener("click", () => caricaSezione(sezioneAttiva, true));
+  }
+
+  function cambiaSezione(key) {
+    if (key === sezioneAttiva && cache[key]) return;
+    sezioneAttiva = key;
+    document.querySelectorAll(".tab").forEach(b =>
+      b.setAttribute("aria-selected", b.dataset.key === key));
+    const lbl = SEZIONI.find(s => s.key === key).label;
+    el("titoloSezione").textContent = lbl;
+    el("filtro").value = "";
+    caricaSezione(key, false);
+  }
+
+  // ---- formatto la data ISO in gg/mm/aaaa ----
+  function dataIt(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d)) return "";
+    const gg = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${gg}/${mm}/${d.getFullYear()}`;
+  }
+
+  function pulisciNome(nome) {
+    return nome.replace(/\.docx$/i, "");
+  }
+
+  // ---- carico l'elenco da Drive ----
+  async function caricaSezione(categoria, forzaRicarica) {
+    const cont = el("contenuto");
+    const lbl = SEZIONI.find(s => s.key === categoria).label;
+
+    const attiva = (categoria === sezioneAttiva);
+
+    if (cache[categoria] && !forzaRicarica) {
+      if (attiva) { mostraFile(cache[categoria]); aggiornaSottotitolo(cache[categoria].length, lbl); }
+      return;
+    }
+
+    if (attiva) {
+      cont.innerHTML = `<div class="stato"><div class="spinner"></div><p>Carico i documenti di ${lbl}…</p></div>`;
+      el("sottotitolo").textContent = "Carico i documenti…";
+    }
+
+    try {
+      const url = `${FUNZIONE_URL}?categoria=${encodeURIComponent(categoria)}&token=${encodeURIComponent(TOKEN)}`;
+      const resp = await fetch(url);
+      const dati = await resp.json();
+      if (!resp.ok || !dati.ok) throw new Error(dati && dati.error ? dati.error : "Errore di lettura");
+
+      const files = dati.files || [];
+      cache[categoria] = files;
+      conteggi[categoria] = files.length;
+      const badge = el("conta-" + categoria);
+      if (badge) badge.textContent = files.length;
+
+      if (categoria === sezioneAttiva) {
+        mostraFile(files);
+        aggiornaSottotitolo(files.length, lbl);
+      }
+    } catch (err) {
+      if (categoria === sezioneAttiva) {
+        cont.innerHTML = `
+          <div class="stato">
+            <div class="grande">⚠️</div>
+            <p>Non riesco a leggere i documenti.<br>Controlla la connessione e riprova.</p>
+            <button id="btnRiprova">Riprova</button>
+          </div>`;
+        el("btnRiprova").addEventListener("click", () => caricaSezione(categoria, true));
+        el("sottotitolo").textContent = "Errore di lettura";
+      }
+    }
+  }
+
+  function aggiornaSottotitolo(n, lbl) {
+    el("sottotitolo").textContent = n === 0
+      ? `Nessun documento in ${lbl}`
+      : `${n} ${n === 1 ? "documento" : "documenti"} in ${lbl}`;
+  }
+
+  // ---- mostro i file (con filtro) ----
+  function mostraFile(files) {
+    const cont = el("contenuto");
+    const q = el("filtro").value.trim().toLowerCase();
+    const elenco = q ? files.filter(f => f.name.toLowerCase().includes(q)) : files;
+
+    if (files.length === 0) {
+      cont.innerHTML = `
+        <div class="stato">
+          <div class="grande">📂</div>
+          <p>Qui non c'è ancora niente.<br>I documenti compaiono qui quando li crei dal programma.</p>
+        </div>`;
+      return;
+    }
+    if (elenco.length === 0) {
+      cont.innerHTML = `<div class="stato"><div class="grande">🔍</div><p>Nessun documento trovato per «${q}».</p></div>`;
+      return;
+    }
+
+    cont.innerHTML = `<div class="lista">` + elenco.map((f, i) => `
+      <div class="riga" style="animation-delay:${Math.min(i * 25, 300)}ms">
+        <div class="icona-doc">${ICONA_DOC}</div>
+        <div class="info">
+          <div class="nome-file" title="${escHtml(f.name)}">${escHtml(pulisciNome(f.name))}</div>
+          <div class="meta-file">${dataIt(f.data)} &nbsp;·&nbsp; Word</div>
+        </div>
+        <a class="scarica" href="${escAttr(f.link)}" target="_blank" rel="noopener">
+          ${ICONA_SCARICA}<span>Scarica</span>
+        </a>
+      </div>`).join("") + `</div>`;
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function escAttr(s) { return escHtml(s); }
+
+  // ---- avvio ----
+  disegnaTab();
+  el("filtro").addEventListener("input", () => {
+    if (cache[sezioneAttiva]) mostraFile(cache[sezioneAttiva]);
+  });
+  caricaSezione(sezioneAttiva, false);
+  // pre-carico in sottofondo i conteggi delle altre sezioni
+  SEZIONI.filter(s => s.key !== sezioneAttiva).forEach(s => caricaSezione(s.key, false));
+</script>
+</body>
+</html>
