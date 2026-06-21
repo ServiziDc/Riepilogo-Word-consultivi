@@ -1,0 +1,15 @@
+{
+  "name": "Archivio Consuntivi - Gama Service",
+  "short_name": "Consuntivi Gama",
+  "description": "Archivio dei consuntivi su Google Drive, divisi per mese (CBRE, CREVAL, DUSSMANN, Preventivi)",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1F3864",
+  "theme_color": "#1F3864",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
