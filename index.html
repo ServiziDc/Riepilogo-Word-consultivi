@@ -89,6 +89,18 @@
   .intestazione-sezione { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
   .intestazione-sezione h1 { font-size: clamp(20px, 4vw, 26px); font-weight: 800; color: var(--navy); letter-spacing: -.02em; }
   .pallino { width: 10px; height: 10px; border-radius: 50%; background: var(--arancio); flex: none; }
+  .mese-select {
+    font: 700 14px/1 'Manrope', sans-serif;
+    color: #1F3864;
+    background: #fff;
+    border: 1px solid #cdbfa9;
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    margin-right: 6px;
+  }
+  .mese-select:hover { border-color: #E0701B; }
+  .mese-select:focus { outline: 2px solid #E0701B; outline-offset: 1px; }
   .sottotitolo { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--grigio-muto); margin-bottom: 18px; }
 
   .cerca { position: relative; margin-bottom: 16px; max-width: 420px; }
@@ -226,7 +238,15 @@
 <script>
   // ====== CONFIGURAZIONE ======
   const FUNZIONE_URL = "https://europe-west1-gama-service.cloudfunctions.net/elencaConsuntiviDrive";
+  const MESI_URL = "https://europe-west1-gama-service.cloudfunctions.net/elencaMesiConsuntivi";
   const TOKEN = "42c93fde15187744a4bd92b7d5074fb76709ed40e9871ea9";
+  const NOMI_MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  // "2026-06" -> "Giugno 2026"
+  function meseLabel(m) {
+    const p = String(m).split("-");
+    const i = parseInt(p[1], 10) - 1;
+    return (NOMI_MESI[i] || m) + " " + p[0];
+  }
   const SEZIONI = [
     { key: "CBRE",       label: "CBRE" },
     { key: "CREVAL",     label: "CREVAL" },
@@ -240,15 +260,23 @@
   const ICONA_OCCHIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
 
   let sezioneAttiva = SEZIONI[0].key;
-  const cache = {};   // categoria -> array di file
-  const conteggi = {}; // categoria -> numero (per i badge)
+  let meseAttivo = null;          // es. "2026-06" (scelto nel menu in alto)
+  let mesiDisponibili = [];       // elenco "AAAA-MM" presenti su Drive
+  const cache = {};   // "mese|categoria" -> array di file
+  const conteggi = {}; // "mese|categoria" -> numero (per i badge)
+  const chiave = (cat) => meseAttivo + "|" + cat;
 
   const el = (id) => document.getElementById(id);
 
   // ---- costruisco i tab ----
   function disegnaTab() {
     const tabs = el("tabs");
-    tabs.innerHTML = SEZIONI.map(s => `
+    const optMesi = mesiDisponibili.length
+      ? mesiDisponibili.map(m => `<option value="${m}" ${m === meseAttivo ? "selected" : ""}>${meseLabel(m)}</option>`).join("")
+      : `<option value="">— nessun mese —</option>`;
+    tabs.innerHTML =
+      `<select id="meseSelect" class="mese-select" title="Scegli il mese">${optMesi}</select>` +
+      SEZIONI.map(s => `
       <button class="tab" role="tab" data-key="${s.key}"
               aria-selected="${s.key === sezioneAttiva}">
         ${ICONA_CARTELLA}<span>${s.label}</span>
@@ -262,10 +290,21 @@
       b.addEventListener("click", () => cambiaSezione(b.dataset.key));
     });
     el("btnAggiorna").addEventListener("click", () => caricaSezione(sezioneAttiva, true));
+    const ms = el("meseSelect");
+    if (ms) ms.addEventListener("change", () => cambiaMese(ms.value));
+  }
+
+  function cambiaMese(m) {
+    if (!m || m === meseAttivo) return;
+    meseAttivo = m;
+    el("filtro").value = "";
+    SEZIONI.forEach(s => { const b = el("conta-" + s.key); if (b) b.textContent = "·"; });
+    caricaSezione(sezioneAttiva, true);
+    SEZIONI.filter(s => s.key !== sezioneAttiva).forEach(s => caricaSezione(s.key, true));
   }
 
   function cambiaSezione(key) {
-    if (key === sezioneAttiva && cache[key]) return;
+    if (key === sezioneAttiva && cache[chiave(key)]) return;
     sezioneAttiva = key;
     document.querySelectorAll(".tab").forEach(b =>
       b.setAttribute("aria-selected", b.dataset.key === key));
@@ -296,8 +335,17 @@
 
     const attiva = (categoria === sezioneAttiva);
 
-    if (cache[categoria] && !forzaRicarica) {
-      if (attiva) { mostraFile(cache[categoria]); aggiornaSottotitolo(cache[categoria].length, lbl); }
+    if (!meseAttivo) {
+      if (attiva) {
+        cont.innerHTML = `<div class="stato"><div class="grande">📂</div><p>Scegli un mese in alto per vedere i documenti.</p></div>`;
+        el("sottotitolo").textContent = "Scegli un mese";
+      }
+      return;
+    }
+
+    const ck = chiave(categoria);
+    if (cache[ck] && !forzaRicarica) {
+      if (attiva) { mostraFile(cache[ck]); aggiornaSottotitolo(cache[ck].length, lbl); }
       return;
     }
 
@@ -307,14 +355,14 @@
     }
 
     try {
-      const url = `${FUNZIONE_URL}?categoria=${encodeURIComponent(categoria)}&token=${encodeURIComponent(TOKEN)}`;
+      const url = `${FUNZIONE_URL}?categoria=${encodeURIComponent(categoria)}&mese=${encodeURIComponent(meseAttivo)}&token=${encodeURIComponent(TOKEN)}`;
       const resp = await fetch(url);
       const dati = await resp.json();
       if (!resp.ok || !dati.ok) throw new Error(dati && dati.error ? dati.error : "Errore di lettura");
 
       const files = dati.files || [];
-      cache[categoria] = files;
-      conteggi[categoria] = files.length;
+      cache[ck] = files;
+      conteggi[ck] = files.length;
       const badge = el("conta-" + categoria);
       if (badge) badge.textContent = files.length;
 
@@ -403,13 +451,31 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") chiudiModale(); });
 
   // ---- avvio ----
-  disegnaTab();
-  el("filtro").addEventListener("input", () => {
-    if (cache[sezioneAttiva]) mostraFile(cache[sezioneAttiva]);
-  });
-  caricaSezione(sezioneAttiva, false);
-  // pre-carico in sottofondo i conteggi delle altre sezioni
-  SEZIONI.filter(s => s.key !== sezioneAttiva).forEach(s => caricaSezione(s.key, false));
+  async function popolaMesi() {
+    try {
+      const resp = await fetch(`${MESI_URL}?token=${encodeURIComponent(TOKEN)}`);
+      const dati = await resp.json();
+      if (resp.ok && dati.ok && Array.isArray(dati.mesi)) mesiDisponibili = dati.mesi;
+    } catch (e) { mesiDisponibili = []; }
+    if (mesiDisponibili.length && !meseAttivo) meseAttivo = mesiDisponibili[0];
+  }
+
+  async function avvia() {
+    await popolaMesi();
+    disegnaTab();
+    el("filtro").addEventListener("input", () => {
+      if (cache[chiave(sezioneAttiva)]) mostraFile(cache[chiave(sezioneAttiva)]);
+    });
+    if (!meseAttivo) {
+      el("sottotitolo").textContent = "Nessun documento ancora caricato";
+      el("contenuto").innerHTML = `<div class="stato"><div class="grande">📂</div><p>Qui non c'è ancora niente.<br>I documenti compaiono quando li crei dal programma.</p></div>`;
+      return;
+    }
+    caricaSezione(sezioneAttiva, false);
+    // pre-carico in sottofondo i conteggi delle altre sezioni (per il mese scelto)
+    SEZIONI.filter(s => s.key !== sezioneAttiva).forEach(s => caricaSezione(s.key, false));
+  }
+  avvia();
 </script>
 </body>
 </html>
