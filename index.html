@@ -174,8 +174,63 @@
   @keyframes gira { to { transform: rotate(360deg); } }
   @keyframes entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-  .pie { text-align: center; padding: 24px 0 40px; color: var(--grigio-muto); font-size: 12px; }
-  .pie b { color: var(--navy); }
+  /* ---------- Tabella CREVAL Excel ---------- */
+  .tab-excel-wrap { overflow-x: auto; border: 1px solid var(--linea); border-radius: 12px; background: var(--carta); box-shadow: var(--ombra); }
+  table.excel { border-collapse: collapse; width: 100%; min-width: 1120px; font-size: 13px; }
+  table.excel thead th {
+    position: sticky; top: 0; background: var(--navy); color: #fff;
+    font-weight: 700; text-align: left; padding: 11px 12px; white-space: nowrap;
+    border-right: 1px solid rgba(255,255,255,.12); font-size: 12px; letter-spacing: .01em;
+  }
+  table.excel tbody td { padding: 10px 12px; border-top: 1px solid var(--linea); border-right: 1px solid var(--linea); vertical-align: top; }
+  table.excel tbody tr:nth-child(even) { background: #faf8f4; }
+  table.excel tbody tr:hover { background: #f1ece3; }
+  table.excel td.num, table.excel th.num { text-align: right; white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
+  table.excel td.center { text-align: center; white-space: nowrap; }
+  table.excel td.sede { font-weight: 700; color: var(--navy); min-width: 220px; }
+  table.excel td.descr { min-width: 280px; white-space: normal; }
+  table.excel .tag-noword { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; color: var(--grigio-muto); background: var(--grigio-chiaro); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  table.excel .btn-vedi, table.excel .btn-odl { padding: 7px 11px; font-size: 12.5px; }
+  table.excel tfoot td { padding: 12px; font-weight: 800; color: var(--navy); background: #f1ece3; border-top: 2px solid var(--arancio); font-size: 14px; }
+  .excel-azioni { display: flex; gap: 6px; flex-wrap: wrap; }
+  @media (max-width: 560px) {
+    table.excel .btn-vedi span, table.excel .btn-odl span { display: inline; }
+  }
+
+  /* ---------- Caricamento ODL ---------- */
+  .odl-carica {
+    background: var(--carta); border: 1px solid var(--linea); border-radius: 12px;
+    padding: 16px; box-shadow: var(--ombra); margin-bottom: 18px;
+  }
+  .odl-carica h3 { font-size: 15px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+  .odl-carica .hint { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--grigio-muto); margin-bottom: 12px; }
+  .odl-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .odl-campo { display: flex; flex-direction: column; gap: 5px; flex: 1 1 240px; min-width: 0; }
+  .odl-campo label { font-size: 12px; font-weight: 700; color: var(--navy); }
+  .odl-campo input[type=text] {
+    font-family: inherit; font-size: 14px; color: var(--scuro);
+    padding: 10px 12px; border: 1px solid var(--linea); border-radius: 9px; background: #fff;
+  }
+  .odl-campo input[type=text]:focus { outline: none; border-color: var(--arancio); box-shadow: 0 0 0 3px rgba(224,112,27,.14); }
+  .odl-file-label {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    font-family: inherit; font-size: 13.5px; font-weight: 700; color: var(--navy);
+    background: var(--grigio-chiaro); border: 1px dashed #cdbfa9; border-radius: 9px; padding: 10px 14px;
+  }
+  .odl-file-label:hover { border-color: var(--arancio); }
+  .odl-file-nome { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--grigio-muto); margin-top: 4px; word-break: break-all; }
+  .odl-btn-carica {
+    display: inline-flex; align-items: center; gap: 8px; flex: none;
+    background: var(--arancio); color: #fff; border: 1px solid var(--arancio);
+    font-family: inherit; font-size: 14px; font-weight: 800; padding: 11px 18px;
+    border-radius: 9px; cursor: pointer; transition: background .12s ease, transform .12s ease;
+  }
+  .odl-btn-carica:hover:not(:disabled) { background: var(--arancio-scuro); transform: translateY(-1px); }
+  .odl-btn-carica:disabled { opacity: .55; cursor: not-allowed; }
+  .odl-btn-carica svg { width: 16px; height: 16px; }
+  .odl-esito { margin-top: 10px; font-size: 13px; font-weight: 700; }
+  .odl-esito.ok { color: var(--ok); }
+  .odl-esito.ko { color: #c0392b; }
 
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
@@ -261,10 +316,12 @@
     return (NOMI_MESI[i] || m) + " " + p[0];
   }
   const SEZIONI = [
-    { key: "CBRE",       label: "CBRE" },
-    { key: "CREVAL",     label: "CREVAL" },
-    { key: "DUSSMANN",   label: "DUSSMANN" },
-    { key: "PREVENTIVI", label: "Preventivi" },
+    { key: "CBRE",         label: "CBRE" },
+    { key: "CREVAL",       label: "CREVAL" },
+    { key: "CREVAL_EXCEL", label: "CREVAL Excel", excel: true },
+    { key: "DUSSMANN",     label: "DUSSMANN" },
+    { key: "PREVENTIVI",   label: "Preventivi" },
+    { key: "ODL",          label: "ODL", odl: true },
   ];
 
   const ICONA_CARTELLA = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#1F3864" stroke-width="2" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
@@ -347,6 +404,29 @@
     const lbl = SEZIONI.find(s => s.key === categoria).label;
 
     const attiva = (categoria === sezioneAttiva);
+
+    // La sezione "CREVAL Excel" non legge da Drive: legge le righe scritte
+    // nell'Excel (collection Firestore "consuntivi", tipo "creval") tramite
+    // il modulo in fondo alla pagina.
+    if (SEZIONI.find(s => s.key === categoria)?.excel) {
+      if (window.caricaCrevalExcel) {
+        window.caricaCrevalExcel(attiva, forzaRicarica, meseAttivo);
+      } else if (attiva) {
+        cont.innerHTML = `<div class="stato"><div class="spinner"></div><p>Carico le righe Excel CREVAL…</p></div>`;
+      }
+      return;
+    }
+
+    // La sezione "ODL": carica/elenca i file ODL su Drive (categoria "ODL")
+    // e mostra il pulsante per caricarne di nuovi.
+    if (SEZIONI.find(s => s.key === categoria)?.odl) {
+      if (window.caricaOdl) {
+        window.caricaOdl(attiva, forzaRicarica, meseAttivo);
+      } else if (attiva) {
+        cont.innerHTML = `<div class="stato"><div class="spinner"></div><p>Carico gli ODL…</p></div>`;
+      }
+      return;
+    }
 
     if (!meseAttivo) {
       if (attiva) {
@@ -495,6 +575,14 @@
     await popolaMesi();
     disegnaTab();
     el("filtro").addEventListener("input", () => {
+      if (SEZIONI.find(s => s.key === sezioneAttiva)?.excel) {
+        if (window.filtraCrevalExcel) window.filtraCrevalExcel();
+        return;
+      }
+      if (SEZIONI.find(s => s.key === sezioneAttiva)?.odl) {
+        if (window.filtraOdl) window.filtraOdl();
+        return;
+      }
       if (cache[chiave(sezioneAttiva)]) mostraFile(cache[chiave(sezioneAttiva)]);
     });
     if (!meseAttivo) {
@@ -507,6 +595,440 @@
     SEZIONI.filter(s => s.key !== sezioneAttiva).forEach(s => caricaSezione(s.key, false));
   }
   avvia();
+</script>
+<script type="module">
+  // ============================================================
+  // SEZIONE "CREVAL EXCEL"
+  // Mostra ciò che è scritto nel file Excel CREVAL, leggendo IN DIRETTA
+  // la stessa collection Firestore "consuntivi" (tipo:"creval") che usano
+  // l'app desktop e la PWA Excel. Solo lettura: qui non si scrive nulla.
+  // Le righe che HANNO un consuntivo Word su Drive mostrano i tasti
+  // "Visualizza" / "Visualizza ODL"; quelle senza Word restano qui come
+  // semplici righe Excel.
+  // ============================================================
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, query, where, getDocs }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCp7WCI9wWBH1hLNXdYA0LTvRmKYjVo53o",
+    authDomain: "gama-service.firebaseapp.com",
+    projectId: "gama-service",
+    storageBucket: "gama-service.appspot.com",
+    messagingSenderId: "440236038955",
+    appId: "1:440236038955:web:84d854ca445a76d81b836e"
+  };
+  const db = getFirestore(initializeApp(firebaseConfig));
+
+  // Stesse URL/token usati dal resto della pagina (per trovare i Word su Drive)
+  const DRIVE_URL = "https://europe-west1-gama-service.cloudfunctions.net/elencaConsuntiviDrive";
+  const DRIVE_TOKEN = "42c93fde15187744a4bd92b7d5074fb76709ed40e9871ea9";
+
+  const OCCHIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+
+  // cache per mese: { righe, driveMatch }
+  const cacheExcel = {};
+  let righeCorrenti = [];      // righe del mese mostrato (per la ricerca)
+  let matchCorrente = {};      // numero -> { wordId, odlId }
+  let meseCorrente = null;
+
+  function esc(s) {
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function euro(n) {
+    const v = Number(n) || 0;
+    return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(v);
+  }
+  // "315/2026" oppure "" se la riga non ha numero (solo Excel)
+  function numeroConsuntivo(r) {
+    if (r.numero === null || r.numero === undefined || r.numero === "" || r.numero >= 900000) return "";
+    const anno = r.dataDocumento ? String(r.dataDocumento).split("-")[0]
+               : (r.mese ? String(r.mese).split("-")[0] : "");
+    return anno ? `${r.numero}/${anno}` : `${r.numero}`;
+  }
+
+  // Scarica l'elenco dei Word CREVAL su Drive (per il mese) e costruisce:
+  //  - mappa numero -> id del Word        (per il tasto "Visualizza")
+  //  - mappa numero -> id dell'ODL (.pdf) (per il tasto "Visualizza ODL")
+  async function caricaMatchDrive(mese) {
+    const out = {};
+    try {
+      const url = `${DRIVE_URL}?categoria=CREVAL&mese=${encodeURIComponent(mese)}&token=${encodeURIComponent(DRIVE_TOKEN)}`;
+      const resp = await fetch(url);
+      const dati = await resp.json();
+      if (!resp.ok || !dati.ok) return out;
+      const files = dati.files || [];
+
+      // separo gli ODL ("... - ODL.pdf") dai Word principali
+      const odlMap = {}; const principali = [];
+      files.forEach(f => {
+        const m = /^(.*) - ODL\.pdf$/i.exec(f.name);
+        if (m) odlMap[m[1].toLowerCase()] = f;
+        else principali.push(f);
+      });
+
+      // per ogni Word, provo a leggere il numero consuntivo dal nome file
+      principali.forEach(f => {
+        const base = f.name.replace(/\.docx$/i, "");
+        const mNum = base.match(/(\d{1,5})\s*[\/\-]\s*20\d{2}/);   // es. 315/2026 o 315-2026
+        const num = mNum ? mNum[1] : null;
+        if (!num) return;
+        const odl = odlMap[base.toLowerCase()];
+        out[num] = { wordId: f.id, wordNome: base, odlId: odl ? odl.id : null };
+      });
+    } catch (e) { /* se Drive non risponde, niente tasti Visualizza */ }
+    return out;
+  }
+
+  async function caricaRighe(mese) {
+    const q = query(collection(db, "consuntivi"),
+      where("tipo", "==", "creval"), where("mese", "==", mese));
+    const snap = await getDocs(q);
+    const righe = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    righe.sort((a, b) => {
+      const na = (a.numero === null || a.numero === undefined) ? 999999 : a.numero;
+      const nb = (b.numero === null || b.numero === undefined) ? 999999 : b.numero;
+      return na - nb;
+    });
+    return righe;
+  }
+
+  function render(filtro) {
+    const cont = document.getElementById("contenuto");
+    const q = (filtro || "").trim().toLowerCase();
+
+    const righe = q
+      ? righeCorrenti.filter(r =>
+          [r.sede, r.descrizione, r.crevalTicket, r.crevalOdlNumero, numeroConsuntivo(r)]
+            .some(v => String(v || "").toLowerCase().includes(q)))
+      : righeCorrenti;
+
+    if (righeCorrenti.length === 0) {
+      cont.innerHTML = `<div class="stato"><div class="grande">📂</div><p>Nessuna riga CREVAL in questo mese.<br>Le righe compaiono qui quando vengono inserite nell'Excel CREVAL.</p></div>`;
+      return;
+    }
+    if (righe.length === 0) {
+      cont.innerHTML = `<div class="stato"><div class="grande">🔍</div><p>Nessuna riga trovata per «${esc(q)}».</p></div>`;
+      return;
+    }
+
+    let totale = 0;
+    const corpo = righe.map(r => {
+      totale += Number(r.totale) || 0;
+      const num = numeroConsuntivo(r);
+      const numKey = (r.numero !== null && r.numero !== undefined && r.numero < 900000) ? String(r.numero) : null;
+      const match = numKey ? matchCorrente[numKey] : null;
+
+      let azioni = "";
+      if (match && match.wordId) {
+        azioni += `<button class="btn-vedi" data-id="${esc(match.wordId)}" data-nome="${esc(match.wordNome || r.sede)}" onclick="apriVisualizza(this)" title="Visualizza il consuntivo Word">${OCCHIO}<span>Visualizza</span></button>`;
+        if (match.odlId) {
+          azioni += `<button class="btn-odl" data-id="${esc(match.odlId)}" data-nome="ODL — ${esc(match.wordNome || r.sede)}" onclick="apriVisualizza(this)" title="Visualizza l'ODL allegato">${OCCHIO}<span>Visualizza ODL</span></button>`;
+        }
+      } else {
+        azioni = `<span class="tag-noword">solo Excel</span>`;
+      }
+
+      return `<tr>
+        <td class="sede">${esc(r.sede)}</td>
+        <td class="center">${esc(r.crevalProvincia)}</td>
+        <td>${esc(r.crevalRegione)}</td>
+        <td class="num">${esc(r.crevalTicket)}</td>
+        <td class="num">${esc(r.crevalOdlNumero)}</td>
+        <td class="num">${esc(num)}</td>
+        <td class="descr">${esc(r.descrizione)}</td>
+        <td class="center">${esc(r.dataIntervento)}</td>
+        <td class="num">${(r.ore || r.ore === 0) ? esc(r.ore) : ""}</td>
+        <td class="num">${euro(r.costoMateriale)}</td>
+        <td class="num">${euro(r.totale)}</td>
+        <td><div class="excel-azioni">${azioni}</div></td>
+      </tr>`;
+    }).join("");
+
+    cont.innerHTML = `
+      <div class="tab-excel-wrap">
+        <table class="excel">
+          <thead><tr>
+            <th>Sede e indirizzo/agenzia</th><th class="num">Prov.</th><th>Regione</th>
+            <th class="num">Ticket (con C)</th><th class="num">ODL</th><th class="num">Consuntivo</th>
+            <th>Descrizione intervento</th><th>Data</th><th class="num">Ore</th>
+            <th class="num">Materiale</th><th class="num">Imponibile</th><th>Documento</th>
+          </tr></thead>
+          <tbody>${corpo}</tbody>
+          <tfoot><tr>
+            <td colspan="10" style="text-align:right">Totale imponibile mese</td>
+            <td class="num">${euro(totale)}</td><td></td>
+          </tr></tfoot>
+        </table>
+      </div>`;
+  }
+
+  // chiamata dal resto della pagina quando si apre/aggiorna la sezione
+  window.caricaCrevalExcel = async function (attiva, forza, mese) {
+    const cont = document.getElementById("contenuto");
+    const sotto = document.getElementById("sottotitolo");
+    const badge = document.getElementById("conta-CREVAL_EXCEL");
+
+    if (!mese) {
+      if (attiva) {
+        cont.innerHTML = `<div class="stato"><div class="grande">📂</div><p>Scegli un mese in alto per vedere le righe CREVAL.</p></div>`;
+        if (sotto) sotto.textContent = "Scegli un mese";
+      }
+      return;
+    }
+
+    if (cacheExcel[mese] && !forza) {
+      righeCorrenti = cacheExcel[mese].righe;
+      matchCorrente = cacheExcel[mese].match;
+      meseCorrente = mese;
+      if (badge) badge.textContent = righeCorrenti.length;
+      if (attiva) { render(document.getElementById("filtro").value); aggiornaSotto(sotto); }
+      return;
+    }
+
+    if (attiva) {
+      cont.innerHTML = `<div class="stato"><div class="spinner"></div><p>Carico le righe dell'Excel CREVAL…</p></div>`;
+      if (sotto) sotto.textContent = "Carico le righe…";
+    }
+
+    try {
+      const [righe, match] = await Promise.all([caricaRighe(mese), caricaMatchDrive(mese)]);
+      cacheExcel[mese] = { righe, match };
+      righeCorrenti = righe; matchCorrente = match; meseCorrente = mese;
+      if (badge) badge.textContent = righe.length;
+      if (attiva) { render(document.getElementById("filtro").value); aggiornaSotto(sotto); }
+    } catch (err) {
+      if (attiva) {
+        cont.innerHTML = `<div class="stato"><div class="grande">⚠️</div><p>Non riesco a leggere le righe CREVAL.<br>Controlla la connessione e riprova.</p><button id="btnRiprovaEx">Riprova</button></div>`;
+        const b = document.getElementById("btnRiprovaEx");
+        if (b) b.addEventListener("click", () => window.caricaCrevalExcel(true, true, mese));
+        if (sotto) sotto.textContent = "Errore di lettura";
+      }
+    }
+  };
+
+  function aggiornaSotto(sotto) {
+    if (!sotto) return;
+    const n = righeCorrenti.length;
+    sotto.textContent = n === 0 ? "Nessuna riga CREVAL" : `${n} ${n === 1 ? "riga" : "righe"} nell'Excel CREVAL`;
+  }
+
+  // ricerca live (chiamata dal campo "Cerca")
+  window.filtraCrevalExcel = function () {
+    render(document.getElementById("filtro").value);
+  };
+</script>
+<script>
+  // ============================================================
+  // SEZIONE "ODL"
+  // Elenca i file ODL su Drive (cartella Consuntivi/ODL del mese) e permette
+  // di caricarne di nuovi dando un NOME (per capire a cosa si riferisce l'ODL).
+  // L'elenco usa il token di SOLA LETTURA; il caricamento usa il token di
+  // scrittura (lo stesso che usa l'app desktop per salvare i consuntivi).
+  // ============================================================
+  const ODL_LISTA_URL   = "https://europe-west1-gama-service.cloudfunctions.net/elencaConsuntiviDrive";
+  const ODL_CARICA_URL  = "https://europe-west1-gama-service.cloudfunctions.net/caricaConsuntivoSuDrive";
+  const ODL_TOKEN_LISTA = "42c93fde15187744a4bd92b7d5074fb76709ed40e9871ea9";
+
+  // ⚠️ TOKEN DI SCRITTURA: serve per caricare i file su Drive. È lo stesso
+  // token che usa l'app desktop. Mettendolo qui, chiunque apra questa pagina
+  // può caricare file su Drive. Se preferisci, lo togliamo e mettiamo un login.
+  const ODL_TOKEN_CARICA = "158d76892c820bfc66e50db1801e2457b3ed21bf61ded634";
+
+  const ODL_OCCHIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const ODL_SCARICA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>';
+  const ODL_DOC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>';
+  const ODL_UPLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V7"/><path d="m6 11 6-6 6 6"/><path d="M5 21h14"/></svg>';
+
+  const odlCache = {};        // mese -> array file
+  let odlFile = null;         // File scelto da caricare
+  let odlMeseCorrente = null;
+
+  function odlEsc(s) {
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function odlDataIt(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d)) return "";
+    const gg = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${gg}/${mm}/${d.getFullYear()}`;
+  }
+  function odlEstensione(nomeFile) {
+    const m = /\.[A-Za-z0-9]{1,5}$/.exec(nomeFile || "");
+    return m ? m[0] : "";
+  }
+  function odlPulisciNome(nome) {
+    // niente caratteri che danno fastidio nei nomi file
+    return String(nome).replace(/[\\/:*?"<>|]/g, "-").trim();
+  }
+  function fileInBase64(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(",")[1]);
+      r.onerror = () => rej(new Error("Lettura file fallita"));
+      r.readAsDataURL(file);
+    });
+  }
+
+  window.caricaOdl = async function (attiva, forza, mese) {
+    const cont = document.getElementById("contenuto");
+    const sotto = document.getElementById("sottotitolo");
+    const badge = document.getElementById("conta-ODL");
+    odlMeseCorrente = mese;
+
+    if (!mese) {
+      if (attiva) {
+        cont.innerHTML = `<div class="stato"><div class="grande">📂</div><p>Scegli un mese in alto per vedere e caricare gli ODL.</p></div>`;
+        if (sotto) sotto.textContent = "Scegli un mese";
+      }
+      return;
+    }
+
+    if (odlCache[mese] && !forza) {
+      if (badge) badge.textContent = odlCache[mese].length;
+      if (attiva) odlRender(odlCache[mese], document.getElementById("filtro").value, sotto);
+      return;
+    }
+
+    if (attiva) {
+      cont.innerHTML = `<div class="stato"><div class="spinner"></div><p>Carico gli ODL…</p></div>`;
+      if (sotto) sotto.textContent = "Carico gli ODL…";
+    }
+
+    try {
+      const url = `${ODL_LISTA_URL}?categoria=ODL&mese=${encodeURIComponent(mese)}&token=${encodeURIComponent(ODL_TOKEN_LISTA)}`;
+      const resp = await fetch(url);
+      const dati = await resp.json();
+      if (!resp.ok || !dati.ok) throw new Error(dati && dati.error ? dati.error : "Errore di lettura");
+      const files = dati.files || [];
+      odlCache[mese] = files;
+      if (badge) badge.textContent = files.length;
+      if (attiva) odlRender(files, document.getElementById("filtro").value, sotto);
+    } catch (err) {
+      if (attiva) {
+        cont.innerHTML = `<div class="stato"><div class="grande">⚠️</div><p>Non riesco a leggere gli ODL.<br>Controlla la connessione e riprova.</p><button id="btnRiprovaOdl">Riprova</button></div>`;
+        const b = document.getElementById("btnRiprovaOdl");
+        if (b) b.addEventListener("click", () => window.caricaOdl(true, true, mese));
+        if (sotto) sotto.textContent = "Errore di lettura";
+      }
+    }
+  };
+
+  window.filtraOdl = function () {
+    const mese = odlMeseCorrente;
+    if (mese && odlCache[mese]) odlRender(odlCache[mese], document.getElementById("filtro").value, document.getElementById("sottotitolo"));
+  };
+
+  function odlRender(files, filtro, sotto) {
+    const cont = document.getElementById("contenuto");
+    const q = (filtro || "").trim().toLowerCase();
+    const elenco = q ? (files || []).filter(f => f.name.toLowerCase().includes(q)) : (files || []);
+
+    const formHtml = `
+      <div class="odl-carica">
+        <h3>Carica un nuovo ODL</h3>
+        <div class="hint">Dai un nome che faccia capire a cosa si riferisce (es. la sede o il ticket). Mese: ${odlEsc(odlMeseCorrente || "")}</div>
+        <div class="odl-form">
+          <div class="odl-campo">
+            <label for="odlNome">Nome ODL</label>
+            <input type="text" id="odlNome" placeholder="Es. CREVAL Via Busi Rezzato — C61986970" autocomplete="off" />
+          </div>
+          <div class="odl-campo" style="flex:0 1 auto">
+            <label>File</label>
+            <label class="odl-file-label" for="odlFileInput">${ODL_DOC}<span id="odlFileLabelTxt">Scegli file…</span></label>
+            <input type="file" id="odlFileInput" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.docx,.doc,.heic" />
+            <div class="odl-file-nome" id="odlFileNome"></div>
+          </div>
+          <button class="odl-btn-carica" id="odlBtnCarica">${ODL_UPLOAD}<span>Carica ODL</span></button>
+        </div>
+        <div class="odl-esito" id="odlEsito"></div>
+      </div>`;
+
+    let listaHtml;
+    if ((files || []).length === 0) {
+      listaHtml = `<div class="stato"><div class="grande">📂</div><p>Nessun ODL caricato per questo mese.<br>Usa il riquadro qui sopra per caricarne uno.</p></div>`;
+    } else if (elenco.length === 0) {
+      listaHtml = `<div class="stato"><div class="grande">🔍</div><p>Nessun ODL trovato per «${odlEsc(q)}».</p></div>`;
+    } else {
+      listaHtml = `<div class="lista">` + elenco.map((f, i) => `
+        <div class="riga" style="animation-delay:${Math.min(i * 25, 300)}ms">
+          <div class="icona-doc">${ODL_DOC}</div>
+          <div class="info">
+            <div class="nome-file" title="${odlEsc(f.name)}">${odlEsc(f.name)}</div>
+            <div class="meta-file">${odlDataIt(f.data)} &nbsp;·&nbsp; ODL</div>
+          </div>
+          <div class="azioni">
+            <button class="btn-vedi" data-id="${odlEsc(f.id)}" data-nome="${odlEsc(f.name)}" onclick="apriVisualizza(this)">${ODL_OCCHIO}<span>Visualizza</span></button>
+            <a class="scarica" href="${odlEsc(f.link)}" target="_blank" rel="noopener" title="Scarica">${ODL_SCARICA}<span>Scarica</span></a>
+          </div>
+        </div>`).join("") + `</div>`;
+    }
+
+    cont.innerHTML = formHtml + listaHtml;
+    if (sotto) {
+      const n = (files || []).length;
+      sotto.textContent = n === 0 ? "Nessun ODL caricato" : `${n} ${n === 1 ? "ODL" : "ODL"} caricati`;
+    }
+
+    // collego gli eventi del form
+    odlFile = null;
+    const inputFile = document.getElementById("odlFileInput");
+    inputFile.addEventListener("change", () => {
+      odlFile = inputFile.files && inputFile.files[0] ? inputFile.files[0] : null;
+      document.getElementById("odlFileLabelTxt").textContent = odlFile ? "Cambia file" : "Scegli file…";
+      document.getElementById("odlFileNome").textContent = odlFile ? odlFile.name : "";
+    });
+    document.getElementById("odlBtnCarica").addEventListener("click", odlEseguiCaricamento);
+  }
+
+  async function odlEseguiCaricamento() {
+    const esito = document.getElementById("odlEsito");
+    const btn = document.getElementById("odlBtnCarica");
+    const nome = odlPulisciNome(document.getElementById("odlNome").value);
+    esito.className = "odl-esito";
+
+    if (!nome) { esito.classList.add("ko"); esito.textContent = "Scrivi un nome per l'ODL."; return; }
+    if (!odlFile) { esito.classList.add("ko"); esito.textContent = "Scegli il file da caricare."; return; }
+    if (!odlMeseCorrente) { esito.classList.add("ko"); esito.textContent = "Scegli prima un mese in alto."; return; }
+
+    btn.disabled = true;
+    esito.classList.add("ok");
+    esito.textContent = "Carico l'ODL su Drive…";
+
+    try {
+      const base64 = await fileInBase64(odlFile);
+      const ext = odlEstensione(odlFile.name);
+      const fileName = nome.endsWith(ext) ? nome : (nome + ext);
+
+      const resp = await fetch(ODL_CARICA_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: ODL_TOKEN_CARICA,
+          fileBase64: base64,
+          fileName: fileName,
+          categoria: "ODL",
+          mese: odlMeseCorrente,
+          mimeType: odlFile.type || "application/octet-stream",
+        }),
+      });
+      const dati = await resp.json();
+      if (!resp.ok || !dati.ok) throw new Error(dati && dati.error ? dati.error : "Caricamento fallito");
+
+      esito.classList.remove("ko"); esito.classList.add("ok");
+      esito.textContent = "ODL caricato ✓";
+      odlCache[odlMeseCorrente] = null;     // forza ricarica della lista
+      setTimeout(() => window.caricaOdl(true, true, odlMeseCorrente), 600);
+    } catch (err) {
+      esito.classList.remove("ok"); esito.classList.add("ko");
+      esito.textContent = "Errore: " + err.message;
+      btn.disabled = false;
+    }
+  }
 </script>
 <script>
   // Service worker: abilita l'installazione e il funzionamento offline (solo la "scatola",
