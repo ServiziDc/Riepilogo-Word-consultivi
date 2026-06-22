@@ -140,7 +140,7 @@
   }
   .meta-file { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--grigio-muto); margin-top: 2px; }
   .azioni { flex: none; display: flex; align-items: center; gap: 8px; }
-  .btn-vedi, .scarica {
+  .btn-vedi, .scarica, .btn-odl {
     display: inline-flex; align-items: center; gap: 7px;
     font-family: inherit; font-size: 13.5px; font-weight: 700;
     padding: 9px 14px; border-radius: 9px; cursor: pointer; text-decoration: none;
@@ -148,6 +148,10 @@
   }
   .btn-vedi { background: var(--arancio); color: #fff; border: 1px solid var(--arancio); }
   .btn-vedi:hover { background: var(--arancio-scuro); border-color: var(--arancio-scuro); transform: translateY(-1px); }
+  .btn-odl { background: var(--navy); color: #fff; border: 1px solid var(--navy); }
+  .btn-odl:hover { background: var(--navy-chiaro); border-color: var(--navy-chiaro); transform: translateY(-1px); }
+  .btn-odl:focus-visible { outline: 3px solid rgba(31,56,100,.4); outline-offset: 2px; }
+  .btn-odl svg { width: 15px; height: 15px; }
   .scarica { background: #fff; color: var(--navy); border: 1px solid var(--linea); }
   .scarica:hover { border-color: var(--navy); transform: translateY(-1px); }
   .btn-vedi:focus-visible, .scarica:focus-visible { outline: 3px solid rgba(224,112,27,.4); outline-offset: 2px; }
@@ -177,8 +181,8 @@
     * { animation: none !important; transition: none !important; }
   }
   @media (max-width: 560px) {
-    .scarica span, .btn-vedi span { display: none; }
-    .scarica, .btn-vedi { padding: 10px 12px; }
+    .scarica span, .btn-vedi span, .btn-odl span { display: none; }
+    .scarica, .btn-vedi, .btn-odl { padding: 10px 12px; }
     .riga { gap: 11px; padding: 11px 12px; }
   }
 
@@ -403,9 +407,19 @@
   function mostraFile(files) {
     const cont = el("contenuto");
     const q = el("filtro").value.trim().toLowerCase();
-    const elenco = q ? files.filter(f => f.name.toLowerCase().includes(q)) : files;
 
-    if (files.length === 0) {
+    // Separo gli ODL (PDF "... - ODL.pdf") dai consuntivi veri e propri.
+    const odlMap = {};
+    const principali = [];
+    (files || []).forEach(f => {
+      const m = /^(.*) - ODL\.pdf$/i.exec(f.name);
+      if (m) odlMap[m[1].toLowerCase()] = f;   // chiave = nome base (senza " - ODL.pdf")
+      else principali.push(f);
+    });
+
+    const elenco = q ? principali.filter(f => f.name.toLowerCase().includes(q)) : principali;
+
+    if (principali.length === 0) {
       cont.innerHTML = `
         <div class="stato">
           <div class="grande">📂</div>
@@ -418,7 +432,13 @@
       return;
     }
 
-    cont.innerHTML = `<div class="lista">` + elenco.map((f, i) => `
+    cont.innerHTML = `<div class="lista">` + elenco.map((f, i) => {
+      const base = f.name.replace(/\.docx$/i, "").toLowerCase();
+      const odl = odlMap[base];
+      const bottoneOdl = odl
+        ? `<button class="btn-odl" data-id="${escAttr(odl.id)}" data-nome="ODL — ${escAttr(pulisciNome(f.name))}" onclick="apriVisualizza(this)" title="Visualizza l'ODL allegato">${ICONA_OCCHIO}<span>Visualizza ODL</span></button>`
+        : "";
+      return `
       <div class="riga" style="animation-delay:${Math.min(i * 25, 300)}ms">
         <div class="icona-doc">${ICONA_DOC}</div>
         <div class="info">
@@ -426,6 +446,7 @@
           <div class="meta-file">${dataIt(f.data)} &nbsp;·&nbsp; Word</div>
         </div>
         <div class="azioni">
+          ${bottoneOdl}
           <button class="btn-vedi" data-id="${escAttr(f.id)}" data-nome="${escAttr(pulisciNome(f.name))}" onclick="apriVisualizza(this)">
             ${ICONA_OCCHIO}<span>Visualizza</span>
           </button>
@@ -433,7 +454,8 @@
             ${ICONA_SCARICA}<span>Scarica</span>
           </a>
         </div>
-      </div>`).join("") + `</div>`;
+      </div>`;
+    }).join("") + `</div>`;
   }
 
   function escHtml(s) {
