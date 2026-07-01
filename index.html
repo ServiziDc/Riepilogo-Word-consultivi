@@ -510,20 +510,24 @@
       .trim()
       .toLowerCase();
 
-    const odlMap = {};
+    // Un consuntivo può avere PIÙ ODL: "- ODL.pdf", "- ODL 2.pdf", "- ODL 3.pdf"...
+    // Quindi per ogni consuntivo tengo una LISTA di ODL (non uno solo).
+    const odlMap = {};   // chiave → array di { file, num }
     const principali = [];
     (files || []).forEach(f => {
-      // Riconosco sia " - ODL.pdf" sia " - ODL 2.pdf", " - ODL 3.pdf" ecc.
-      const m = /^(.*) - ODL(?: \d+)?\.pdf$/i.exec(f.name);
+      // Catturo il nome base e l'eventuale numero (2, 3, ...); il primo ODL non ha numero.
+      const m = /^(.*) - ODL(?: (\d+))?\.pdf$/i.exec(f.name);
       if (m) {
         const chiave = normalizzaChiave(m[1]);
-        // Se ci sono più ODL per lo stesso consuntivo, tengo il primo (gli altri
-        // restano comunque raggiungibili, ma il bottone mostra il principale).
-        if (!odlMap[chiave]) odlMap[chiave] = f;
+        const num = m[2] ? parseInt(m[2], 10) : 1;   // "- ODL.pdf" = 1
+        if (!odlMap[chiave]) odlMap[chiave] = [];
+        odlMap[chiave].push({ file: f, num: num });
       } else {
         principali.push(f);
       }
     });
+    // Ordino gli ODL di ogni consuntivo per numero (1, 2, 3...)
+    Object.keys(odlMap).forEach(k => odlMap[k].sort((a, b) => a.num - b.num));
 
     const elenco = q ? principali.filter(f => f.name.toLowerCase().includes(q)) : principali;
 
@@ -542,24 +546,27 @@
 
     cont.innerHTML = `<div class="lista">` + elenco.map((f, i) => {
       const base = normalizzaChiave(f.name.replace(/\.docx$/i, ""));
-      const odl = odlMap[base];
-      const bottoneOdl = odl
-        ? `<button class="btn-odl" data-id="${escAttr(odl.id)}" data-nome="ODL — ${escAttr(pulisciNome(f.name))}" onclick="apriVisualizza(this)" title="Visualizza l'ODL allegato">${ICONA_OCCHIO}<span>Visualizza ODL</span></button>`
-        : "";
+      const listaOdl = odlMap[base] || [];
+      // Un pulsante "ODL 1", "ODL 2"... per ogni ODL abbinato al consuntivo.
+      // Se c'è un solo ODL, il pulsante mostra semplicemente "ODL".
+      const bottoniOdl = listaOdl.map((o, idx) => {
+        const etichetta = listaOdl.length > 1 ? `ODL ${idx + 1}` : "ODL";
+        return `<button class="btn-odl" data-id="${escAttr(o.file.id)}" data-nome="${escAttr(etichetta + " — " + pulisciNome(f.name))}" onclick="apriVisualizza(this)" title="Visualizza ${etichetta}">${ICONA_OCCHIO}<span>${etichetta}</span></button>`;
+      }).join("");
       // Pulsante CARICA ODL: sempre presente su ogni consuntivo. Carica il PDF
-      // con il nome del consuntivo + " - ODL.pdf" così viene abbinato in automatico.
-      // Il nome base del Word (senza .docx) serve per costruire il nome dell'ODL.
+      // con il nome del consuntivo + " - ODL.pdf" (o " - ODL N.pdf" se già ce ne sono).
       const nomeBaseWord = f.name.replace(/\.docx$/i, "");
-      const bottoneCaricaOdl = `<button class="btn-carica-odl" data-nomebase="${escAttr(nomeBaseWord)}" data-haodl="${odl ? "1" : "0"}" onclick="window.caricaOdlSuConsuntivo(this)" title="${odl ? "Sostituisci l'ODL di questo consuntivo" : "Carica l'ODL per questo consuntivo"}">${ICONA_UPLOAD_ODL}<span>${odl ? "Sostituisci ODL" : "Carica ODL"}</span></button>`;
+      const numeroProssimoOdl = listaOdl.length + 1;   // quanti ODL ci sono già + 1
+      const bottoneCaricaOdl = `<button class="btn-carica-odl" data-nomebase="${escAttr(nomeBaseWord)}" data-prossimo="${numeroProssimoOdl}" onclick="window.caricaOdlSuConsuntivo(this)" title="Aggiungi un ODL a questo consuntivo">${ICONA_UPLOAD_ODL}<span>${listaOdl.length ? "Aggiungi ODL" : "Carica ODL"}</span></button>`;
       return `
       <div class="riga" style="animation-delay:${Math.min(i * 25, 300)}ms">
         <div class="icona-doc">${ICONA_DOC}</div>
         <div class="info">
           <div class="nome-file" title="${escHtml(f.name)}">${escHtml(pulisciNome(f.name))}</div>
-          <div class="meta-file">${dataIt(f.data)} &nbsp;·&nbsp; Word</div>
+          <div class="meta-file">${dataIt(f.data)} &nbsp;·&nbsp; Word${listaOdl.length ? ` &nbsp;·&nbsp; ${listaOdl.length} ODL` : ""}</div>
         </div>
         <div class="azioni">
-          ${bottoneOdl}
+          ${bottoniOdl}
           ${bottoneCaricaOdl}
           <button class="btn-vedi" data-id="${escAttr(f.id)}" data-nome="${escAttr(pulisciNome(f.name))}" onclick="apriVisualizza(this)">
             ${ICONA_OCCHIO}<span>Visualizza</span>
@@ -567,7 +574,7 @@
           <a class="scarica" href="${escAttr(f.link)}" target="_blank" rel="noopener" title="Scarica">
             ${ICONA_SCARICA}<span>Scarica</span>
           </a>
-          <button class="btn-elimina" data-filename="${escAttr(f.name)}" data-nome="${escAttr(pulisciNome(f.name))}" data-haodl="${odl ? "1" : "0"}" data-odlbase="${escAttr(nomeBaseWord)}" onclick="window.eliminaFileConsuntivo(this)" title="Sposta nel cestino questo file su Drive">${ICONA_CESTINO}<span>Elimina</span></button>
+          <button class="btn-elimina" data-filename="${escAttr(f.name)}" data-nome="${escAttr(pulisciNome(f.name))}" data-haodl="${listaOdl.length ? "1" : "0"}" data-odlbase="${escAttr(nomeBaseWord)}" data-numodl="${listaOdl.length}" onclick="window.eliminaFileConsuntivo(this)" title="Sposta nel cestino questo file su Drive">${ICONA_CESTINO}<span>Elimina</span></button>
         </div>
       </div>`;
     }).join("") + `</div>`;
@@ -613,8 +620,7 @@
   // Chiamata dal pulsante "Carica ODL" su una riga consuntivo.
   window.caricaOdlSuConsuntivo = function (btn) {
     const nomeBaseWord = btn.dataset.nomebase;   // nome del Word senza .docx
-    const giaPresente = btn.dataset.haodl === "1";
-    if (giaPresente && !confirm("Questo consuntivo ha già un ODL. Vuoi sostituirlo con un nuovo file?")) return;
+    const prossimo = parseInt(btn.dataset.prossimo || "1", 10);   // numero del prossimo ODL
 
     // Creo al volo un input file nascosto e lo apro
     const input = document.createElement("input");
@@ -628,8 +634,10 @@
       document.body.removeChild(input);
       if (!file) return;
 
-      // Nome ODL = nome del consuntivo + " - ODL.pdf" (così si abbina da solo)
-      const fileName = nomeBaseWord + " - ODL.pdf";
+      // Nome ODL: il primo è "... - ODL.pdf", i successivi "... - ODL 2.pdf", "... - ODL 3.pdf"
+      // (stesso schema del programma, così si abbinano tutti e non si sovrascrivono).
+      const suffisso = (prossimo > 1) ? ` - ODL ${prossimo}.pdf` : " - ODL.pdf";
+      const fileName = nomeBaseWord + suffisso;
 
       // Feedback visivo sul pulsante
       const testoOrig = btn.innerHTML;
@@ -693,9 +701,10 @@
     const nome = btn.dataset.nome || "questo file";
     const haOdl = btn.dataset.haodl === "1";
     const nomeBaseOdl = btn.dataset.odlbase || null;  // nome base per costruire "... - ODL.pdf"
+    const numOdl = parseInt(btn.dataset.numodl || "0", 10);   // quanti ODL ha
 
     let messaggio = `Vuoi eliminare «${nome}»?\n\nIl file verrà spostato nel cestino di Google Drive (recuperabile per 30 giorni).`;
-    if (haOdl) messaggio += `\n\nQuesto consuntivo ha anche un ODL: verrà eliminato anche quello.`;
+    if (haOdl) messaggio += `\n\nQuesto consuntivo ha ${numOdl > 1 ? numOdl + " ODL" : "un ODL"}: ${numOdl > 1 ? "verranno eliminati anche quelli" : "verrà eliminato anche quello"}.`;
     if (!confirm(messaggio)) return;
 
     const testoOrig = btn.innerHTML;
@@ -704,9 +713,12 @@
 
     try {
       await eliminaPerNome(nomeFileCompleto);
-      // Se c'era un ODL abbinato, elimino anche quello (nome base + " - ODL.pdf")
+      // Elimino TUTTI gli ODL abbinati: "- ODL.pdf", "- ODL 2.pdf", ... "- ODL N.pdf"
       if (haOdl && nomeBaseOdl) {
-        try { await eliminaPerNome(nomeBaseOdl + " - ODL.pdf"); } catch (e) { console.warn("ODL non eliminato:", e); }
+        for (let n = 1; n <= numOdl; n++) {
+          const nomeOdl = nomeBaseOdl + (n > 1 ? ` - ODL ${n}.pdf` : " - ODL.pdf");
+          try { await eliminaPerNome(nomeOdl); } catch (e) { console.warn("ODL non eliminato:", nomeOdl, e); }
+        }
       }
       setTimeout(() => caricaSezione(sezioneAttiva, true), 500);
     } catch (err) {

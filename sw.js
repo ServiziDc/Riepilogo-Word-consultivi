@@ -1,5 +1,5 @@
 // Service worker Archivio Consuntivi Gama — abilita installazione + offline della "scatola".
-const CACHE = "consuntivi-gama-v5";
+const CACHE = "consuntivi-gama-v6";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
