@@ -489,12 +489,28 @@
     const q = el("filtro").value.trim().toLowerCase();
 
     // Separo gli ODL (PDF "... - ODL.pdf") dai consuntivi veri e propri.
+    // IMPORTANTE: il programma quando salva sostituisce i caratteri vietati
+    // ( / \ : * ? " < > | ) con "_". Per abbinare bene ODL e Word anche quando
+    // il nome conteneva quei caratteri, normalizzo le chiavi allo STESSO modo.
+    const normalizzaChiave = (s) => String(s || "")
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")   // stessi caratteri che pulisce il programma
+      .replace(/\s+/g, " ")                        // spazi multipli → uno solo
+      .trim()
+      .toLowerCase();
+
     const odlMap = {};
     const principali = [];
     (files || []).forEach(f => {
-      const m = /^(.*) - ODL\.pdf$/i.exec(f.name);
-      if (m) odlMap[m[1].toLowerCase()] = f;   // chiave = nome base (senza " - ODL.pdf")
-      else principali.push(f);
+      // Riconosco sia " - ODL.pdf" sia " - ODL 2.pdf", " - ODL 3.pdf" ecc.
+      const m = /^(.*) - ODL(?: \d+)?\.pdf$/i.exec(f.name);
+      if (m) {
+        const chiave = normalizzaChiave(m[1]);
+        // Se ci sono più ODL per lo stesso consuntivo, tengo il primo (gli altri
+        // restano comunque raggiungibili, ma il bottone mostra il principale).
+        if (!odlMap[chiave]) odlMap[chiave] = f;
+      } else {
+        principali.push(f);
+      }
     });
 
     const elenco = q ? principali.filter(f => f.name.toLowerCase().includes(q)) : principali;
@@ -513,7 +529,7 @@
     }
 
     cont.innerHTML = `<div class="lista">` + elenco.map((f, i) => {
-      const base = f.name.replace(/\.docx$/i, "").toLowerCase();
+      const base = normalizzaChiave(f.name.replace(/\.docx$/i, ""));
       const odl = odlMap[base];
       const bottoneOdl = odl
         ? `<button class="btn-odl" data-id="${escAttr(odl.id)}" data-nome="ODL — ${escAttr(pulisciNome(f.name))}" onclick="apriVisualizza(this)" title="Visualizza l'ODL allegato">${ICONA_OCCHIO}<span>Visualizza ODL</span></button>`
