@@ -140,12 +140,17 @@
   }
   .meta-file { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--grigio-muto); margin-top: 2px; }
   .azioni { flex: none; display: flex; align-items: center; gap: 8px; }
-  .btn-vedi, .scarica, .btn-odl {
+  .btn-vedi, .scarica, .btn-odl, .btn-carica-odl {
     display: inline-flex; align-items: center; gap: 7px;
     font-family: inherit; font-size: 13.5px; font-weight: 700;
     padding: 9px 14px; border-radius: 9px; cursor: pointer; text-decoration: none;
     transition: background .12s ease, border-color .12s ease, transform .12s ease;
   }
+  .btn-carica-odl { background: #16a34a; color: #fff; border: 1px solid #16a34a; }
+  .btn-carica-odl:hover { background: #15803d; border-color: #15803d; transform: translateY(-1px); }
+  .btn-carica-odl:disabled { opacity: .6; cursor: default; transform: none; }
+  .btn-carica-odl:focus-visible { outline: 3px solid rgba(22,163,74,.4); outline-offset: 2px; }
+  .btn-carica-odl svg { width: 15px; height: 15px; }
   .btn-vedi { background: var(--arancio); color: #fff; border: 1px solid var(--arancio); }
   .btn-vedi:hover { background: var(--arancio-scuro); border-color: var(--arancio-scuro); transform: translateY(-1px); }
   .btn-odl { background: var(--navy); color: #fff; border: 1px solid var(--navy); }
@@ -328,6 +333,7 @@
   const ICONA_DOC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>';
   const ICONA_SCARICA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>';
   const ICONA_OCCHIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const ICONA_UPLOAD_ODL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V7"/><path d="m6 11 6-6 6 6"/><path d="M5 21h14"/></svg>';
 
   let sezioneAttiva = SEZIONI[0].key;
   let meseAttivo = null;          // es. "2026-06" (scelto nel menu in alto)
@@ -534,6 +540,11 @@
       const bottoneOdl = odl
         ? `<button class="btn-odl" data-id="${escAttr(odl.id)}" data-nome="ODL — ${escAttr(pulisciNome(f.name))}" onclick="apriVisualizza(this)" title="Visualizza l'ODL allegato">${ICONA_OCCHIO}<span>Visualizza ODL</span></button>`
         : "";
+      // Pulsante CARICA ODL: sempre presente su ogni consuntivo. Carica il PDF
+      // con il nome del consuntivo + " - ODL.pdf" così viene abbinato in automatico.
+      // Il nome base del Word (senza .docx) serve per costruire il nome dell'ODL.
+      const nomeBaseWord = f.name.replace(/\.docx$/i, "");
+      const bottoneCaricaOdl = `<button class="btn-carica-odl" data-nomebase="${escAttr(nomeBaseWord)}" data-haodl="${odl ? "1" : "0"}" onclick="window.caricaOdlSuConsuntivo(this)" title="${odl ? "Sostituisci l'ODL di questo consuntivo" : "Carica l'ODL per questo consuntivo"}">${ICONA_UPLOAD_ODL}<span>${odl ? "Sostituisci ODL" : "Carica ODL"}</span></button>`;
       return `
       <div class="riga" style="animation-delay:${Math.min(i * 25, 300)}ms">
         <div class="icona-doc">${ICONA_DOC}</div>
@@ -543,6 +554,7 @@
         </div>
         <div class="azioni">
           ${bottoneOdl}
+          ${bottoneCaricaOdl}
           <button class="btn-vedi" data-id="${escAttr(f.id)}" data-nome="${escAttr(pulisciNome(f.name))}" onclick="apriVisualizza(this)">
             ${ICONA_OCCHIO}<span>Visualizza</span>
           </button>
@@ -576,6 +588,77 @@
     document.body.style.overflow = "";
   }
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") chiudiModale(); });
+
+  // ---- CARICA ODL direttamente su un consuntivo ----
+  // Token di SCRITTURA (lo stesso dell'app desktop). La pagina è ad uso interno.
+  const CARICA_ODL_URL = "https://europe-west1-gama-service.cloudfunctions.net/caricaConsuntivoSuDrive";
+  const CARICA_ODL_TOKEN = "158d76892c820bfc66e50db1801e2457b3ed21bf61ded634";
+
+  function fileToBase64(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(",")[1]);
+      r.onerror = () => rej(new Error("Lettura file fallita"));
+      r.readAsDataURL(file);
+    });
+  }
+
+  // Chiamata dal pulsante "Carica ODL" su una riga consuntivo.
+  window.caricaOdlSuConsuntivo = function (btn) {
+    const nomeBaseWord = btn.dataset.nomebase;   // nome del Word senza .docx
+    const giaPresente = btn.dataset.haodl === "1";
+    if (giaPresente && !confirm("Questo consuntivo ha già un ODL. Vuoi sostituirlo con un nuovo file?")) return;
+
+    // Creo al volo un input file nascosto e lo apro
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,application/pdf";
+    input.style.display = "none";
+    document.body.appendChild(input);
+
+    input.addEventListener("change", async () => {
+      const file = input.files && input.files[0];
+      document.body.removeChild(input);
+      if (!file) return;
+
+      // Nome ODL = nome del consuntivo + " - ODL.pdf" (così si abbina da solo)
+      const fileName = nomeBaseWord + " - ODL.pdf";
+
+      // Feedback visivo sul pulsante
+      const testoOrig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `${ICONA_UPLOAD_ODL}<span>Carico…</span>`;
+
+      try {
+        const base64 = await fileToBase64(file);
+        const resp = await fetch(CARICA_ODL_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: CARICA_ODL_TOKEN,
+            fileBase64: base64,
+            fileName: fileName,
+            categoria: sezioneAttiva,          // CBRE o CREVAL (stessa cartella del consuntivo)
+            mese: meseAttivo,
+            mimeType: "application/pdf",
+          }),
+        });
+        const dati = await resp.json();
+        if (!resp.ok || !dati.ok) throw new Error(dati && dati.error ? dati.error : "Caricamento fallito");
+
+        btn.innerHTML = `${ICONA_UPLOAD_ODL}<span>Caricato ✓</span>`;
+        // Ricarico la sezione per far comparire il bottone "Visualizza ODL"
+        setTimeout(() => caricaSezione(sezioneAttiva, true), 700);
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = testoOrig;
+        alert("Errore nel caricamento dell'ODL:\n" + err.message);
+      }
+    });
+
+    input.click();
+  };
+
 
   // ---- avvio ----
   async function popolaMesi() {
